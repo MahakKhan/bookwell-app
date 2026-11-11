@@ -2,7 +2,6 @@
   "name": "bookwell",
   "private": true,
   "type": "module",
-  "main": "server.mjs",
   "scripts": {
     "build": "remix vite:build",
     "build:deploy": "remix vite:build && prisma migrate deploy",
