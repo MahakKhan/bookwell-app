@@ -2,6 +2,7 @@
   "name": "bookwell",
   "private": true,
   "type": "module",
+  "main": "build/server/index.js",
   "scripts": {
     "build": "remix vite:build",
     "dev": "shopify app dev",
