@@ -64,14 +64,14 @@ Theme App Extension for the storefront widget.
 
 - Outlook / Apple calendar sync — only Google is wired up so far;
   `calendar.server.ts` is the place to add the equivalent OAuth flows
-- Shopify Billing API (`AppSubscription` creation) — code is in
-  `app/shopify.server.ts` / `app/routes/app.billing.tsx`, but the
-  Partner org needs to complete Shopify's App Store business
-  registration before the Billing API stops 403ing (Partner Dashboard →
-  App distribution → "Manage submission")
 - Reminder messages sent *before* an appointment (only the booking-time
   confirmation sends today) — needs a scheduler/cron, which a plain
   Remix dev server doesn't have
+- Real hosting — this only runs via `shopify app dev` on a local
+  machine right now. See "Deploying" below.
+- App Store submission — the listing checklist (icon, contact email,
+  primary language, protected customer data questionnaire) is still
+  incomplete in the Partner Dashboard
 
 ## Email / SMS / Calendar: bring your own provider
 
