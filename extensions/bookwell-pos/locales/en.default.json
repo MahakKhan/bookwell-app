@@ -1,0 +1,9 @@
+{
+  "name": "Bookwell",
+  "tile_heading": "Bookwell",
+  "tile_subheading": "Today's bookings",
+  "modal_heading": "Today's bookings",
+  "loading": "Loading…",
+  "empty": "No more bookings today.",
+  "error": "Couldn't load bookings. Try again."
+}

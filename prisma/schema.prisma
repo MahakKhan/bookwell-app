@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Required by @shopify/shopify-app-session-storage-prisma
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// One row per installed store. Everything else is scoped by shopDomain.
+model Shop {
+  id             String   @id @default(cuid())
+  shopDomain     String   @unique
+  planName       String   @default("free")
+  timezone       String   @default("UTC")
+  locale         String   @default("en")
+  smsEnabled     Boolean  @default(false)
+  twoWaySyncOn   Boolean  @default(false)
+  widgetAccent   String   @default("#5b5bd6")
+
+  // Bring-your-own-provider notification config. Left blank, sendBookingEmail
+  // / sendBookingSms in notify.server.ts no-op instead of failing the
+  // booking — a merchant can use the app fully before ever setting these.
+  notifyFromEmail   String?
+  resendApiKey      String?
+  twilioAccountSid  String?
+  twilioAuthToken   String?
+  twilioFromNumber  String?
+
+  // Google Calendar OAuth (bring-your-own GOOGLE_CLIENT_ID/SECRET env —
+  // see app/routes/app.calendar.connect.tsx). Null refreshToken means
+  // "not connected"; calendar.server.ts no-ops in that case.
+  googleRefreshToken String?
+  googleAccessToken  String?
+  googleTokenExpiry  DateTime?
+  googleCalendarId   String?   @default("primary")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  services    Service[]
+  staff       StaffMember[]
+  locations   Location[]
+  bookings    Booking[]
+  billingLogs BillingReconciliation[]
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  name      String
+  address   String?
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+
+  @@index([shopId])
+}
+
+model StaffMember {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  name      String
+  email     String?
+  color     String   @default("#5b5bd6")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  availability AvailabilityRule[]
+  bookings     Booking[]
+
+  @@index([shopId])
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId          String
+  productId       String? // Shopify Product GID this service is attached to
+  name            String
+  durationMinutes Int      @default(30)
+  price           Decimal  @default(0)
+  bufferMinutes   Int      @default(0)
+  capacity        Int      @default(1) // >1 enables group bookings
+  requiresDeposit Boolean  @default(false)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  bookings Booking[]
+
+  @@index([shopId])
+  @@index([productId])
+}
+
+model AvailabilityRule {
+  id          String      @id @default(cuid())
+  staff       StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String
+  weekday     Int // 0 = Sunday ... 6 = Saturday
+  startMinute Int // minutes from midnight, local shop timezone
+  endMinute   Int
+
+  @@index([staffId])
+}
+
+// A single confirmed timeslot. The unique index is the actual
+// double-booking guard: a second insert for the same staff member
+// and start time fails at the database level, not just in app code.
+model Booking {
+  id              String    @id @default(cuid())
+  shop            Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId          String
+  service         Service   @relation(fields: [serviceId], references: [id])
+  serviceId       String
+  staff           StaffMember @relation(fields: [staffId], references: [id])
+  staffId         String
+  location        Location? @relation(fields: [locationId], references: [id])
+  locationId      String?
+
+  startsAt        DateTime
+  endsAt          DateTime
+  status          String    @default("confirmed") // confirmed | cancelled | completed | no_show
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  smsOptIn        Boolean   @default(false)
+  shopifyOrderId  String?
+  depositPaid     Decimal?  @default(0)
+
+  // Capability token handed to the customer at booking time (in the
+  // confirmation screen/email link) so they can reschedule or cancel
+  // without an account — knowing the bookingId alone isn't enough.
+  manageToken     String    @unique @default(cuid())
+  googleEventId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, startsAt])
+  @@index([shopId, startsAt])
+  @@index([serviceId])
+}
+
+// Written by the weekly reconciliation job described in the plan:
+// verifies every recurring Shopify charge that should have fired
+// actually did, so billing failures get caught instead of silently
+// losing revenue for years.
+model BillingReconciliation {
+  id             String   @id @default(cuid())
+  shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId         String
+  ranAt          DateTime @default(now())
+  expectedCharges Int
+  confirmedCharges Int
+  mismatches     Int
+  details        String? // JSON blob of any mismatched subscription ids
+
+  @@index([shopId, ranAt])
+}

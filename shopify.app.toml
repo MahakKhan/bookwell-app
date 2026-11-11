@@ -1,0 +1,42 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+client_id = "b3c5483d352edfe44851f06cef1d64d4"
+name = "Bookwell"
+handle = "bookwell"
+application_url = "https://bookwell-app.example.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2026-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app_subscriptions/update" ]
+  uri = "/webhooks/billing/update"
+
+# "orders/paid" is deliberately not subscribed yet: that topic's payload
+# carries customer PII, which Shopify gates behind a Protected Customer
+# Data access request in the Partner Dashboard (Settings > Protected
+# customer data in the Dev Dashboard app). Request that access, then
+# re-add this subscription and the webhooks.orders.paid.tsx route will
+# already be there waiting for it.
+
+[app_proxy]
+url = "https://bookwell-app.example.com"
+subpath = "booking"
+prefix = "apps"
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,read_customers,write_app_proxy"
+
+[auth]
+redirect_urls = [ "https://bookwell-app.example.com/auth/callback" ]
+
+[pos]
+embedded = false

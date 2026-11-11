@@ -1,0 +1,38 @@
+{% comment %}
+  This block only does anything on a product that has the
+  "bookwell.service_id" metafield set — i.e. one the merchant has
+  explicitly marked as a bookable service in the Bookwell admin.
+  Every other product page on the store loads none of this app's
+  script or CSS at all. That's a deliberate fix for the "the app
+  injects into every add-to-cart form on the store" complaint found
+  in a competitor's reviews.
+{% endcomment %}
+
+{% assign service_id = product.metafields.bookwell.service_id %}
+
+{% if service_id != blank %}
+  <div
+    id="bookwell-widget"
+    data-service-id="{{ service_id }}"
+    data-shop="{{ shop.permanent_domain }}"
+    data-accent="{{ block.settings.accent_color | default: '#5b5bd6' }}"
+  ></div>
+
+  {{ 'booking.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'booking.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Bookwell booking",
+  "target": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#5b5bd6"
+    }
+  ]
+}
+{% endschema %}

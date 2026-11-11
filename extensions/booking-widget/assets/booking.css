@@ -1,0 +1,55 @@
+#bookwell-widget {
+  --bw-accent: #5b5bd6;
+  font-family: inherit;
+  max-width: 420px;
+  margin: 16px 0;
+}
+#bookwell-widget .bw-book-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bw-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+#bookwell-widget .bw-panel {
+  border: 1px solid #e1e0f5;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 10px;
+}
+#bookwell-widget .bw-slot {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 4px;
+  border: 1px solid #e1e0f5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+#bookwell-widget .bw-slot.bw-taken {
+  text-decoration: line-through;
+  color: #bbb;
+  cursor: not-allowed;
+}
+#bookwell-widget .bw-slot.bw-selected {
+  background: var(--bw-accent);
+  color: #fff;
+  border-color: var(--bw-accent);
+}
+#bookwell-widget input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e1e0f5;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+#bookwell-widget .bw-error {
+  color: #b23a2e;
+  font-size: 13px;
+  margin-top: 6px;
+}
