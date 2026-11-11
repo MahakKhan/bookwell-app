@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -155,6 +155,7 @@ model Booking {
   // without an account — knowing the bookingId alone isn't enough.
   manageToken     String    @unique @default(cuid())
   googleEventId   String?
+  reminderSentAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
