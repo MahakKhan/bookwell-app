@@ -7,7 +7,7 @@ import { useEffect, useState } from "preact/hooks";
 // app's real URL once deployed (it matches `application_url` in
 // shopify.app.toml). Left as the placeholder, every fetch below just
 // fails quietly into the "couldn't load" state instead of crashing.
-const APP_URL = "https://darkgray-hamster-317513.hostingersite.com";
+const APP_URL = "https://bookwell-app.onrender.com";
 
 export default async () => {
   render(<Extension />, document.body);

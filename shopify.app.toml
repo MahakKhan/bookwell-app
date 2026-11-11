@@ -2,7 +2,7 @@
 client_id = "b3c5483d352edfe44851f06cef1d64d4"
 name = "Bookwell"
 handle = "bookwell"
-application_url = "https://darkgray-hamster-317513.hostingersite.com"
+application_url = "https://bookwell-app.onrender.com"
 embedded = true
 
 [build]
@@ -27,7 +27,7 @@ api_version = "2026-10"
 # already be there waiting for it.
 
 [app_proxy]
-url = "https://darkgray-hamster-317513.hostingersite.com"
+url = "https://bookwell-app.onrender.com"
 subpath = "booking"
 prefix = "apps"
 
@@ -35,7 +35,7 @@ prefix = "apps"
 scopes = "read_products,write_products,read_orders,read_customers,write_app_proxy"
 
 [auth]
-redirect_urls = [ "https://darkgray-hamster-317513.hostingersite.com/auth/callback" ]
+redirect_urls = [ "https://bookwell-app.onrender.com/auth/callback" ]
 
 [pos]
 embedded = false
