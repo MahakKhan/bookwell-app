@@ -4,7 +4,8 @@
   "type": "module",
   "main": "server.mjs",
   "scripts": {
-    "build": "remix vite:build && prisma migrate deploy",
+    "build": "remix vite:build",
+    "build:deploy": "remix vite:build && prisma migrate deploy",
     "dev": "shopify app dev",
     "vite-dev": "remix vite:dev",
     "config:link": "shopify app config link",
