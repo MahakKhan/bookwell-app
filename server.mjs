@@ -19,5 +19,8 @@ function run(command) {
   }
 }
 
-run("npx prisma migrate deploy");
-execSync("npx remix-serve ./build/server/index.js", { stdio: "inherit" });
+// `npx` isn't on PATH in this platform's runtime container (only
+// available during the build step) — call the installed binaries
+// directly instead.
+run("node_modules/.bin/prisma migrate deploy");
+execSync("node_modules/.bin/remix-serve ./build/server/index.js", { stdio: "inherit" });
