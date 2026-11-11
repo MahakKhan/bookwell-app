@@ -20,7 +20,10 @@ function run(command) {
 }
 
 // `npx` isn't on PATH in this platform's runtime container (only
-// available during the build step) — call the installed binaries
-// directly instead.
-run("node_modules/.bin/prisma migrate deploy");
-execSync("node_modules/.bin/remix-serve ./build/server/index.js", { stdio: "inherit" });
+// available during the build step), and even plain `node` isn't on
+// PATH for a spawned subshell — only this already-running process
+// knows where its own binary lives. Use process.execPath to invoke
+// the .bin shims directly, bypassing their shebang/PATH resolution.
+const node = process.execPath;
+run(`${node} node_modules/.bin/prisma migrate deploy`);
+execSync(`${node} node_modules/.bin/remix-serve ./build/server/index.js`, { stdio: "inherit" });
