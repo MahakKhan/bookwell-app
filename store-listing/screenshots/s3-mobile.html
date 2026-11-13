@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><script src="cal.js"></script></head>
+<body style="background:linear-gradient(135deg,#8d6fe0 0%,#5b5bd6 55%,#4b4bc8 100%)"><div class="grid"></div>
+
+<div class="abs" style="left:0;right:0;top:40px;text-align:center"><h1 style="font-size:54px">Booked in <em>three taps</em>, on any phone</h1></div>
+
+<!-- 1 date -->
+<div class="phone" style="left:130px;top:165px"><div class="scr">
+  <div class="url">yourstore.com</div>
+  <div style="text-align:center;margin-bottom:8px"><div style="width:56px;height:56px;border-radius:50%;background:var(--ind);margin:0 auto 6px;display:grid;place-items:center;font-size:26px;color:#fff">💆</div><b style="font-size:18px">Deep Tissue Massage</b></div>
+  <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin:8px 4px"><span>‹</span><span>December 2026</span><span>›</span></div>
+  <div class="cal" id="m1" style="font-size:14px;gap:3px"></div>
+  <div style="margin-top:14px;text-align:center;font-size:13px;color:var(--mut)">Can't find a date? <b style="color:var(--ind)">Join the waitlist</b></div>
+</div></div>
+<!-- 2 time -->
+<div class="phone" style="left:635px;top:165px"><div class="scr">
+  <div class="url">yourstore.com</div>
+  <div style="font-weight:700;font-size:17px;margin-bottom:4px">Tuesday, 15 December</div>
+  <div style="font-size:13px;color:var(--mut);margin-bottom:12px">Time zone: your local time</div>
+  <div class="slot" style="padding:11px 14px;font-size:16px"><span>09:00 – 10:00</span><span class="chip">4 left</span></div>
+  <div class="slot" style="padding:11px 14px;font-size:16px"><span>10:00 – 11:00</span><span class="chip">2 left</span></div>
+  <div class="slot sel" style="padding:11px 14px;font-size:16px"><span>11:30 – 12:30</span><span class="chip">1 left</span></div>
+  <div class="slot" style="padding:11px 14px;font-size:16px"><span>13:00 – 14:00</span><span class="chip">5 left</span></div>
+  <div class="slot" style="padding:11px 14px;font-size:16px"><span>14:30 – 15:30</span><span class="chip">5 left</span></div>
+  <div class="slot" style="padding:11px 14px;font-size:16px"><span>16:00 – 17:00</span><span class="chip">3 left</span></div>
+</div></div>
+<!-- 3 confirm -->
+<div class="phone" style="left:1140px;top:165px"><div class="scr">
+  <div class="url">yourstore.com</div>
+  <div style="font-weight:800;font-size:19px;margin-bottom:10px">Complete your booking</div>
+  <div style="background:var(--soft);border-radius:12px;padding:11px 14px;font-size:15px;line-height:1.5;margin-bottom:12px">📅 Tue 15 Dec · 11:30 – 12:30<br>⏱ 60 minutes · 👤 With Alex</div>
+  <div style="font-size:13px;font-weight:700;margin-bottom:4px">Name</div><div style="border:1.5px solid #e3e1fa;border-radius:10px;padding:10px;font-size:15px;color:#a3a2bb;margin-bottom:10px">Enter your name</div>
+  <div style="font-size:13px;font-weight:700;margin-bottom:4px">Email</div><div style="border:1.5px solid #e3e1fa;border-radius:10px;padding:10px;font-size:15px;color:#a3a2bb;margin-bottom:10px">Enter your email</div>
+  <div style="font-size:13px;font-weight:700;margin-bottom:4px">Deposit due now</div><div style="font-size:20px;font-weight:800;margin-bottom:14px">$15.00</div>
+  <div class="btn" style="display:block;text-align:center;font-size:18px;padding:13px">Continue to checkout</div>
+</div></div>
+
+<div class="abs" style="left:130px;top:800px;width:330px;text-align:center;font-size:36px;font-weight:800;color:#fff">1. Pick a date</div>
+<div class="abs" style="left:635px;top:800px;width:330px;text-align:center;font-size:36px;font-weight:800;color:#fff">2. Pick a time</div>
+<div class="abs" style="left:1140px;top:800px;width:330px;text-align:center;font-size:36px;font-weight:800;color:var(--hi)">3. Confirm</div>
+<script>cal("m1",{offset:1,days:31,sel:15,off:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],dots:[16,17,18,21,22,23,28,29]});</script>
+</body></html>
