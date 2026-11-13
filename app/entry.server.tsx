@@ -5,11 +5,14 @@ import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { addDocumentResponseHeaders } from "./shopify.server";
 import { startBackgroundJobs } from "./models/jobs.server";
+import { startKeepAlive } from "./keepalive.server";
 
 export const streamTimeout = 5000;
 
 // Payment sync, reminders and order checks run in-process (once per server).
 startBackgroundJobs();
+// Pings our own /healthz so a free Render instance doesn't spin down.
+startKeepAlive();
 
 export default async function handleRequest(
   request: Request,
