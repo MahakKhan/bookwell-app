@@ -33,7 +33,7 @@ describe("plans", () => {
   });
   it("prices and seats", () => {
     const growth = PLANS.find((p) => p.key === "growth")!;
-    expect(subscriptionPrice(growth, 2)).toBe(59.97);
+    expect(subscriptionPrice(growth, 2)).toBe(34.97);
     expect(parsePlan(subscriptionName(growth, 1)).extraSeats).toBe(1);
     expect(seatsAllowed("Growth +2 seats")).toBe(5);
     expect(seatsAllowed("free")).toBe(1);

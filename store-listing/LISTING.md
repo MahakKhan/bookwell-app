@@ -54,11 +54,10 @@ Add short captions in the dashboard form (e.g. "See every booking at a glance").
 |---|---|---|---|
 | Free | $0 | 10 | 1 |
 | Starter | $9.99 | 75 | 3 |
-| Basic | $24.99 | 250 | 3 |
-| Growth | $49.99 | 600 | 3 |
-| Pro | $89.99 | 1,200 | 3 |
-| Scale | $129.99 | 2,000 | 3 |
-| Unlimited | $249.99 | Unlimited | 3 |
+| Growth | $24.99 | 300 | 3 |
+| Pro | $49.99 | 1,000 | 3 |
+| Scale | $89.99 | 2,500 | 3 |
+| Unlimited | $149.99 | Unlimited | 3 |
 
 Extra team seats: $4.99/month each. 7-day free trial on the first paid plan. Every feature is included on every plan.
 

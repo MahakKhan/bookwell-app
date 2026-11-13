@@ -18,11 +18,10 @@ export type Plan = {
 export const PLANS: Plan[] = [
   { key: "free", name: "Free", price: 0, bookings: 10, seats: 1 },
   { key: "starter", name: "Starter", price: 9.99, bookings: 75, seats: 3, popular: true },
-  { key: "basic", name: "Basic", price: 24.99, bookings: 250, seats: 3 },
-  { key: "growth", name: "Growth", price: 49.99, bookings: 600, seats: 3, recommended: true },
-  { key: "pro", name: "Pro", price: 89.99, bookings: 1200, seats: 3 },
-  { key: "scale", name: "Scale", price: 129.99, bookings: 2000, seats: 3 },
-  { key: "unlimited", name: "Unlimited", price: 249.99, bookings: null, seats: 3 },
+  { key: "growth", name: "Growth", price: 24.99, bookings: 300, seats: 3, recommended: true },
+  { key: "pro", name: "Pro", price: 49.99, bookings: 1000, seats: 3 },
+  { key: "scale", name: "Scale", price: 89.99, bookings: 2500, seats: 3 },
+  { key: "unlimited", name: "Unlimited", price: 149.99, bookings: null, seats: 3 },
 ];
 
 export const SEAT_PRICE = 4.99;
@@ -34,7 +33,7 @@ export const GRACE = 1.2;
 export const FREE_PLAN = PLANS[0];
 
 // Old plan names from before the tiered pricing.
-const LEGACY: Record<string, string> = { Entry: "starter", paid: "starter" };
+const LEGACY: Record<string, string> = { Entry: "starter", paid: "starter", Basic: "growth" };
 
 /** Parses a stored plan name ("Growth +2 seats") into its plan and extra seats. */
 export function parsePlan(planName: string | null | undefined): { plan: Plan; extraSeats: number } {
