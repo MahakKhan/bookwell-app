@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { getShop } from "../models/shop.server";
+import { logAccess } from "../models/accessLog.server";
 import { formatBookingWhen } from "../models/lifecycle.server";
 import { EMAIL_RE } from "../models/submit.server";
 import { Flash, Modal, STATUS_BADGE, STATUS_LABEL, initials, money, useAppLink, useBusy } from "../components/ui";
@@ -44,6 +45,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       orderBy: { updatedAt: "desc" },
       take: 500,
     });
+    await logAccess(shop.id, session, "customers.list", customers.length);
     return json({ mode: "list" as const, customers });
   }
 
@@ -54,6 +56,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       orderBy: { startsAt: "desc" },
       take: 50,
     });
+    await logAccess(shop.id, session, "customers.history", bookings.length, p("customer"));
     return json({
       mode: "history" as const,
       bookings: bookings.map((b) => ({
@@ -99,6 +102,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       })
     : [];
   const byId = new Map(stats.map((s) => [s.customerId, s]));
+
+  await logAccess(shop.id, session, exporting ? "customers.export" : "customers.view", customers.length, q ? "search" : undefined);
 
   return json({
     mode: "page" as const,

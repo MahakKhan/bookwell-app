@@ -8,6 +8,7 @@ import { syncPackages } from "./packages.server";
 import { runRenewals, syncSubscriptionContracts } from "./subscriptions.server";
 import { syncGoogleBusy } from "./calendar.server";
 import { syncOutlookBusy } from "./microsoft.server";
+import { purgeOldAccessLogs } from "./accessLog.server";
 
 // Background work. Runs in-process (started once from entry.server.tsx) so a
 // single server needs no external scheduler, and is also exposed through
@@ -169,6 +170,9 @@ export function startBackgroundJobs() {
   every(6 * 60 * 60_000, weeklyBillingReconciliation);
   every(5 * 60_000, syncAllGoogleBusy);
   every(10 * 60_000, syncAllSubscriptions);
+  every(24 * 60 * 60_000, async () => {
+    await purgeOldAccessLogs();
+  });
 }
 
 /** Two-way Google sync: refresh each shop's busy times every 5 minutes. */

@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { getShop } from "../models/shop.server";
+import { logAccess } from "../models/accessLog.server";
 import {
   BookingNotFoundError,
   InvalidSlotError,
@@ -137,6 +138,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     manageUrl: manageUrlFor(shop.shopDomain, b.manageToken),
     createdAt: b.createdAt.toISOString(),
   }));
+
+  await logAccess(
+    shop.id,
+    session,
+    exporting ? "bookings.export" : tab === "waitlist" ? "waitlist.view" : "bookings.view",
+    tab === "waitlist" ? waitlist.length : rows.length,
+    q ? "search" : tab,
+  );
 
   return json({
     tab,

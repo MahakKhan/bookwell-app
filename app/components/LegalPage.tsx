@@ -31,6 +31,7 @@ export function LegalPage({ title, children, email }: { title: string; children:
         <a href="/support">Support</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/terms">Terms of service</a>
+        <a href="/security">Security</a>
         {email && <a href={`mailto:${email}`}>{email}</a>}
       </nav>
       <h1>{title}</h1>

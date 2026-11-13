@@ -141,6 +141,7 @@ model Shop {
   bookings      Booking[]
   billingLogs   BillingReconciliation[]
   customers     Customer[]
+  accessLogs    AccessLog[]
   resources     Resource[]
   blocks        BlockedTime[]
   blockedEmails BlockedEmail[]
@@ -360,6 +361,22 @@ model BlockedEmail {
   createdAt DateTime @default(now())
 
   @@unique([shopId, email])
+}
+
+// Who looked at or exported customers' personal data, and when. Written by
+// logAccess() in models/accessLog.server.ts; rows older than 12 months are
+// purged by the daily job. Removed with the shop on shop/redact.
+model AccessLog {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  actor     String // store admin or staff user id (never the personal data itself)
+  action    String // e.g. "customers.view", "customers.export", "bookings.export"
+  detail    String?
+  records   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([shopId, createdAt])
 }
 
 model Customer {

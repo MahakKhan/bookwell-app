@@ -92,3 +92,11 @@ describe("crypto", () => {
     expect(verifyState(s + "x")).toBeNull();
   });
 });
+
+describe("access log", () => {
+  it("names the actor without personal data", async () => {
+    const { actorOf } = await import("../app/models/accessLog.server");
+    expect(actorOf({ shop: "a.myshopify.com" })).toBe("shop:a.myshopify.com");
+    expect(actorOf({ shop: "a.myshopify.com", onlineAccessInfo: { associated_user: { id: 42 } } })).toBe("user:42");
+  });
+});
