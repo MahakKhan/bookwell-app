@@ -31,6 +31,7 @@ export default function App() {
           API key, on every page that renders inside the admin. Public pages
           (privacy, support, storefront booking pages) don't use it.
         */}
+        {apiKey && inAdmin && <meta name="shopify-api-key" content={apiKey} />}
         {apiKey && inAdmin && <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" data-api-key={apiKey} />}
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
