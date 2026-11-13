@@ -50,7 +50,9 @@ export default function AppLayout() {
   const loading = navigation.state !== "idle";
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
+    // App Bridge's <script> is rendered once, first in <head>, by root.tsx;
+    // isEmbeddedApp={false} keeps AppProvider from adding a second copy.
+    <AppProvider isEmbeddedApp={false} apiKey={apiKey}>
       {/* Shopify's own sidebar keeps its native app menu... */}
       <NavMenu>
         <Link to="/app" rel="home">
