@@ -5,13 +5,19 @@ Theme App Extension for the storefront widget.
 
 ## What's built so far
 
-- **Admin**: Dashboard, Services, Staff, Settings (`app/routes/app.*`)
+- **Admin**: Dashboard, Bookings (list + cancel), Services (link to a product,
+  buffer, activate/delete), Staff (editable weekly working hours), Billing,
+  Settings (`app/routes/app.*`)
 - **Data model**: `prisma/schema.prisma` — Shop, Service, StaffMember,
   Location, AvailabilityRule, Booking, BillingReconciliation
 - **Booking engine**: `app/models/booking.server.ts` — double-booking
-  prevention (DB-level unique index + serializable transaction) and a
-  single `getOpenSlots` function shared by the admin calendar, the
-  storefront widget, and (eventually) the POS extension
+  prevention (serializable transaction + a partial unique index on
+  confirmed bookings, so cancelled slots can be re-booked), slot
+  validation (working hours, no past times, active staff/service) and a
+  single `getOpenSlots` shared by the storefront widget and manage page.
+  All availability maths happens in the **shop's timezone**
+  (`app/models/time.server.ts`), which is synced from Shopify on first
+  admin load and editable in Settings.
 - **Billing integrity**: `app/models/billing.server.ts` — a
   reconciliation job stub that compares Shopify's real subscription
   status against what the app expects, meant to run weekly
@@ -58,15 +64,27 @@ Theme App Extension for the storefront widget.
   before shipping (a POS extension can't read the server's env vars,
   and the dev tunnel URL isn't stable across restarts) — can only be
   exercised in the real Shopify POS app/simulator, not in a browser
-- **Webhooks**: app/uninstalled, billing update, orders/paid
+- **Webhooks**: app/uninstalled, billing update, the three mandatory
+  privacy webhooks (`webhooks.compliance.tsx`). orders/paid has a route
+  but is deliberately not subscribed (needs Protected Customer Data).
+- **Security notes**: storefront endpoints verify the app-proxy signature
+  and scope every lookup to the calling shop; provider keys are encrypted
+  at rest and never sent back to the browser; the Google OAuth `state` is
+  HMAC-signed; the cron endpoint takes its secret in a header only.
+- **Plans**: Free = 1 service + 1 team member. Entry ($9) = unlimited +
+  Google Calendar sync. Growth ($19) = + SMS. Charges are Shopify TEST
+  charges unless `BILLING_LIVE=true`.
 
 ## Not built yet (next steps)
 
 - Outlook / Apple calendar sync — only Google is wired up so far;
   `calendar.server.ts` is the place to add the equivalent OAuth flows
-- Reminder messages sent *before* an appointment (only the booking-time
-  confirmation sends today) — needs a scheduler/cron, which a plain
-  Remix dev server doesn't have
+- Anything scheduling-related in-process: reminders only go out when an
+  external cron calls `POST /api/reminders/send` (header `X-Cron-Secret`)
+  every ~15 minutes
+- Service capacity (group bookings), deposits and multiple locations exist
+  in the schema but are not wired into the UI or booking flow
+- Editing an existing service/staff member's details (delete and re-add)
 - Real hosting — this only runs via `shopify app dev` on a local
   machine right now. See "Deploying" below.
 - App Store submission — the listing checklist (icon, contact email,
@@ -87,11 +105,48 @@ all of them left blank.
 - **Google Calendar**: create an OAuth client in
   [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
   (APIs & Services → Credentials → OAuth client ID → Web application),
-  add `<your app URL>/app/calendar/callback` as an authorized redirect
+  add `<your app URL>/oauth/google/callback` as an authorized redirect
   URI, enable the Google Calendar API for that project, then set
   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`. Restart
-  `shopify app dev`, then click "Connect Google Calendar" on the
-  Settings page.
+  `shopify app dev`, then click "Connect Google Calendar" in
+  Integrations. This also enables Google Meet links and
+  blocking times that are busy in Google Calendar.
+- **Zoom**: in the [Zoom App Marketplace](https://marketplace.zoom.us/develop/create)
+  create a "General app" (user-managed OAuth), add the scopes
+  `meeting:write:meeting` and `meeting:update:meeting` / `meeting:delete:meeting`,
+  set the redirect URL to `<your app URL>/oauth/zoom/callback`, then set
+  `ZOOM_CLIENT_ID` and `ZOOM_CLIENT_SECRET` in `.env` and click
+  "Connect Zoom" in Integrations. Virtual services set to
+  "A new Zoom meeting for every booking" then get their own meeting.
+- **Outlook Calendar + Microsoft Teams**: in the [Azure portal](https://portal.azure.com) → App registrations → New registration
+  (any organisational directory and personal Microsoft accounts), add the web redirect URI
+  `<your app URL>/oauth/microsoft/callback`, create a client secret, and add the delegated Microsoft Graph
+  permissions `offline_access`, `User.Read`, `Calendars.ReadWrite`. Set `MS_CLIENT_ID` / `MS_CLIENT_SECRET`,
+  then connect in Integrations. Teams links need a work or school Microsoft 365 account.
+- **Apple Calendar**: Integrations → Apple Calendar → "Create calendar feed" gives a private `.ics` link to
+  subscribe to (Calendar → File → New Calendar Subscription). Customers get "Add to calendar" links in emails.
+- **HubSpot**: create a private app with `crm.objects.contacts.read/write` and paste its token in Integrations.
+- **Zapier**: use a "Webhooks by Zapier → Catch Hook" trigger URL as the webhook (Integrations → Zapier), and
+  the Public API for actions.
+- **AI phone receptionist**: needs `ANTHROPIC_API_KEY`, your Twilio Account SID / Auth Token (Settings → Email & SMS)
+  and a Twilio phone number whose "A call comes in" webhook (HTTP POST) is the URL shown in Integrations.
+- **Waivers**: Integrations → Waivers (or `/app/waivers`).
+- **Mobile app**: the team portal (`/portal/<token>`) installs on phones as an app (Install app / Add to Home Screen).
+- **AI service creation**: set `ANTHROPIC_API_KEY` (from
+  [console.anthropic.com](https://console.anthropic.com)) to enable
+  "Create your service with AI" in My services → New service. It uses
+  Claude Opus 5.5 with a refusal fallback; each service drafted costs a
+  few cents.
+- **Auto-renewing memberships** (Packages → "Auto-renew"): first request
+  *Subscription API* access for the app in the Partner Dashboard; once
+  approved, add `read_own_subscription_contracts,write_own_subscription_contracts`
+  to `scopes` in `shopify.app.toml` and `SCOPES` in `.env`. Also needs
+  Shopify Payments (test mode works on dev stores) and, in the Partner
+  Dashboard, *API access → Protected customer data* with **name** and
+  **email** selected, so Bookwell can read who subscribed. Link a product
+  to the package; Bookwell attaches a subscription selling plan to it,
+  bills renewals itself every period, and emails customers a manage /
+  cancel link.
 
 ## Local setup
 
@@ -105,9 +160,9 @@ all of them left blank.
    real app registered in your Partner Dashboard.
 2. Copy `.env.example` to `.env` — `shopify app config link` and
    `shopify app dev` fill most of it in for you.
-3. Set up the database:
+3. Set up the database (Postgres only; use a separate DB from production):
    ```bash
-   npx prisma migrate dev --name init
+   npx prisma migrate deploy
    ```
 4. Run the app against a dev store:
    ```bash
@@ -115,11 +170,11 @@ all of them left blank.
    ```
    This tunnels your local server, installs the app on your dev
    store, and watches for changes.
-5. On a product in your dev store, add the metafield
-   `bookwell.service_id` (namespace `bookwell`, key `service_id`,
-   type single line text) with a value matching a Service's id from
-   the admin, then add the "Bookwell booking" block to that product
-   template in the theme editor.
+5. In the app's Services page, add a service and click "Link to a
+   product" (this sets the `bookwell.service_id` product metafield for
+   you). Then add the "Bookwell booking" app block to the product
+   template in the theme editor (Online Store > Customize > product
+   page > Add block > Apps). Add a team member on the Staff page too.
 
 ## Deploying
 

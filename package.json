@@ -3,19 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "remix vite:build",
     "build:deploy": "remix vite:build && prisma migrate deploy",
     "dev": "shopify app dev",
     "vite-dev": "remix vite:dev",
+    "preview": "remix vite:build && node scripts/serve.mjs",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
     "setup": "prisma generate && prisma migrate deploy",
     "start": "remix-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",
+    "test": "vitest run",
+    "test:db": "cross-env RUN_DB_TESTS=1 vitest run",
     "prisma": "prisma"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@preact/signals": "^2.11.4",
     "@prisma/client": "^6.6.0",
     "@remix-run/dev": "^2.15.0",
@@ -28,20 +33,26 @@
     "@shopify/shopify-app-session-storage-prisma": "^11.0.3",
     "@shopify/ui-extensions": "~2026.10.2",
     "isbot": "^5.1.17",
+    "jsqr": "^1.4.0",
     "preact": "^10.29.8",
     "prisma": "^6.6.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@shopify/cli": "^3.73.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "cross-env": "^7.0.3",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
-    "vite-tsconfig-paths": "^5.1.3"
+    "vite-tsconfig-paths": "^5.1.3",
+    "vitest": "^2.1.9"
   },
   "engines": {
-    "node": ">=18.20"
+    "node": ">=20.10"
   }
 }

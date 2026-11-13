@@ -1,48 +1,51 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { getOpenSlots } from "../models/booking.server";
+import { getOpenDays, getOpenSlots, loadService } from "../models/booking.server";
+import { proxyShop } from "../models/storefront.server";
+import { DATE_RE, addDays } from "../models/time.server";
 
-// Reached at /apps/booking/availability on the storefront, but Shopify's
-// App Proxy strips the "/apps/booking" prefix before forwarding, so this
-// route lives at the bare path "/availability" here. This is the exact
-// function the admin dashboard calendar also reads from (see
-// routes/app._index.tsx and models/booking.server.ts) — one source of
-// truth for availability instead of the storefront and POS drifting
-// apart, which is the bug that caused overbooking on one of the four
-// competitor apps this project is scoped against.
+// Reached at /apps/booking/availability on the storefront (the App Proxy
+// strips the prefix). Two modes:
+//   ?date=YYYY-MM-DD        → slots for that day
+//   ?from=YYYY-MM-DD&to=... → which days have anything open (calendar)
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { session } = await authenticate.public.appProxy(request);
-  if (!session) return json({ error: "Unknown shop" }, { status: 401 });
+  const shop = await proxyShop(request);
+  if (!shop) return json({ error: "Unknown shop" }, { status: 401 });
 
   const url = new URL(request.url);
-  const serviceId = url.searchParams.get("serviceId");
-  const staffId = url.searchParams.get("staffId");
-  const dateParam = url.searchParams.get("date");
+  const p = (k: string) => url.searchParams.get(k);
+  const service = await loadService(shop.id, p("serviceId") || "");
+  if (!service || !service.active || service.archived) return json({ error: "Not found" }, { status: 404 });
 
-  if (!serviceId || !staffId || !dateParam) {
-    return json({ error: "serviceId, staffId and date are required" }, { status: 400 });
+  const staffId = p("staffId") || "any";
+  const quantity = Math.max(1, Math.min(500, Number(p("quantity")) || 1));
+  const addonIds = (p("addons") || "").split(",").filter(Boolean);
+  const addonMinutes = service.addons.filter((a) => addonIds.includes(a.id)).reduce((n, a) => n + a.durationMinutes, 0);
+
+  // Reschedule: ignore the booking being moved so its own slot shows as free.
+  let excludeBookingId: string | undefined;
+  const excludeToken = p("excludeToken");
+  if (excludeToken) {
+    const b = await prisma.booking.findFirst({ where: { manageToken: excludeToken, shopId: shop.id }, select: { id: true } });
+    excludeBookingId = b?.id;
   }
 
-  const shop = await prisma.shop.findUnique({ where: { shopDomain: session.shop } });
-  const service = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!shop || !service) return json({ error: "Not found" }, { status: 404 });
+  const from = p("from");
+  const to = p("to");
+  if (from && to && DATE_RE.test(from) && DATE_RE.test(to)) {
+    const end = to > addDays(from, 62) ? addDays(from, 62) : to;
+    const days = await getOpenDays({ shop, service, staffId, from, to: end, quantity });
+    return json({ days, timezone: shop.timezone });
+  }
 
-  // Block out the buffer time after each appointment by folding it into
-  // the slot's effective length, so a 15-min service with a 5-min buffer
-  // offers slots 20 minutes apart instead of the old fixed 30-min grid
-  // (which also silently ignored bufferMinutes entirely).
-  const effectiveDuration = service.durationMinutes + service.bufferMinutes;
-
-  const slots = await getOpenSlots({
-    shopId: shop.id,
-    serviceId,
-    staffId,
-    date: new Date(dateParam),
-    durationMinutes: effectiveDuration,
-    slotStepMinutes: effectiveDuration,
+  const date = p("date");
+  if (!date || !DATE_RE.test(date)) {
+    return json({ error: "date (YYYY-MM-DD) or from/to is required" }, { status: 400 });
+  }
+  const slots = await getOpenSlots({ shop, service, staffId, date, quantity, addonMinutes, excludeBookingId });
+  return json({
+    slots: slots.map((s) => ({ startsAt: s.startsAt, available: s.available, seatsLeft: s.seatsLeft, staffId: s.staffId })),
+    timezone: shop.timezone,
   });
-
-  return json({ slots });
 }

@@ -1,21 +1,23 @@
 {% comment %}
-  This block only does anything on a product that has the
-  "bookwell.service_id" metafield set — i.e. one the merchant has
-  explicitly marked as a bookable service in the Bookwell admin.
-  Every other product page on the store loads none of this app's
-  script or CSS at all. That's a deliberate fix for the "the app
-  injects into every add-to-cart form on the store" complaint found
-  in a competitor's reviews.
+  Only renders on a product that has the "bookwell.service_id" metafield set
+  (the merchant linked it to a service in the Bookwell admin), or when a
+  service ID is entered in the block settings. Every other page loads none of
+  this app's script or CSS.
 {% endcomment %}
 
-{% assign service_id = product.metafields.bookwell.service_id %}
+{% assign service_id = block.settings.service_id %}
+{% if service_id == blank and product %}
+  {% assign service_id = product.metafields.bookwell.service_id.value | default: product.metafields.bookwell.service_id %}
+{% endif %}
 
 {% if service_id != blank %}
   <div
-    id="bookwell-widget"
-    data-service-id="{{ service_id }}"
-    data-shop="{{ shop.permanent_domain }}"
-    data-accent="{{ block.settings.accent_color | default: '#5b5bd6' }}"
+    class="bookwell-widget"
+    data-service-id="{{ service_id | escape }}"
+    data-lang="{{ request.locale.iso_code }}"
+    {% if block.settings.accent_color != blank %}data-accent="{{ block.settings.accent_color }}"{% endif %}
+    {% if block.settings.open_by_default %}data-open="true"{% endif %}
+    {{ block.shopify_attributes }}
   ></div>
 
   {{ 'booking.css' | asset_url | stylesheet_tag }}
@@ -28,10 +30,22 @@
   "target": "section",
   "settings": [
     {
+      "type": "text",
+      "id": "service_id",
+      "label": "Service ID (optional)",
+      "info": "Leave empty on product pages: the product's linked service is used. Fill it in to show a specific service on any page."
+    },
+    {
+      "type": "checkbox",
+      "id": "open_by_default",
+      "label": "Show the calendar straight away",
+      "default": false
+    },
+    {
       "type": "color",
       "id": "accent_color",
-      "label": "Accent color",
-      "default": "#5b5bd6"
+      "label": "Accent color override",
+      "info": "Leave empty to use the colour from Bookwell → Settings → Calendar design."
     }
   ]
 }

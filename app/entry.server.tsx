@@ -4,8 +4,12 @@ import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { startBackgroundJobs } from "./models/jobs.server";
 
 export const streamTimeout = 5000;
+
+// Payment sync, reminders and order checks run in-process (once per server).
+startBackgroundJobs();
 
 export default async function handleRequest(
   request: Request,

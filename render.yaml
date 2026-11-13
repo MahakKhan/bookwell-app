@@ -1,0 +1,39 @@
+# Render Blueprint: Render → New → Blueprint → pick this repo.
+# Needs an always-on plan (starter or higher): free instances sleep, which
+# breaks webhooks, the storefront widget and the background jobs.
+services:
+  - type: web
+    name: bookwell-app
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build
+    # Applies pending database migrations, then starts the server.
+    startCommand: npm run docker-start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NODE_ENV
+        value: production
+      - key: SHOPIFY_APP_URL
+        value: https://bookwell-app.onrender.com
+      # Fill these in the Render dashboard (sync: false = not stored in git):
+      - { key: SHOPIFY_API_KEY, sync: false }
+      - { key: SHOPIFY_API_SECRET, sync: false }
+      - { key: SCOPES, value: "read_products,write_products,write_orders,write_draft_orders,write_app_proxy,read_themes" }
+      - { key: DATABASE_URL, sync: false }
+      - { key: ENCRYPTION_KEY, sync: false }
+      - { key: CRON_SECRET, generateValue: true }
+      - { key: BILLING_LIVE, value: "false" }
+      - { key: LEGAL_NAME, value: Bookwell }
+      - { key: SUPPORT_EMAIL, sync: false }
+      # Optional integrations (leave blank to hide the feature):
+      - { key: ANTHROPIC_API_KEY, sync: false }
+      - { key: GOOGLE_CLIENT_ID, sync: false }
+      - { key: GOOGLE_CLIENT_SECRET, sync: false }
+      - { key: ZOOM_CLIENT_ID, sync: false }
+      - { key: ZOOM_CLIENT_SECRET, sync: false }
+      - { key: MS_CLIENT_ID, sync: false }
+      - { key: MS_CLIENT_SECRET, sync: false }

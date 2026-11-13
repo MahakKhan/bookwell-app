@@ -1,0 +1,92 @@
+{% comment %}
+  App embed: a floating "Book now" button on every page of the store.
+  Merchants switch it on in Online Store → Themes → Customize → App embeds.
+  With a service ID it opens that service's calendar in a pop-up; without one
+  it goes to the services list page (/apps/booking/book).
+{% endcomment %}
+
+{% assign hide_here = false %}
+{% if block.settings.hide_on_product and template.name == 'product' %}{% assign hide_here = true %}{% endif %}
+
+{% unless hide_here %}
+  <div
+    id="bookwell-fab"
+    class="bookwell-fab bookwell-fab--{{ block.settings.position }}{% if block.settings.hide_on_mobile %} bookwell-fab--desktop-only{% endif %}"
+    style="--bw-accent: {{ block.settings.color | default: '#5b5bd6' }}"
+    data-service-id="{{ block.settings.service_id | escape }}"
+    data-lang="{{ request.locale.iso_code }}"
+  >
+    <button type="button" class="bookwell-fab-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
+        <path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>{{ block.settings.label | default: 'Book now' | escape }}</span>
+    </button>
+  </div>
+
+  {{ 'booking.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'booking.js' | asset_url }}" defer></script>
+  <script>
+    (function () {
+      var fab = document.getElementById("bookwell-fab");
+      if (!fab) return;
+      var serviceId = fab.dataset.serviceId;
+      fab.querySelector(".bookwell-fab-btn").addEventListener("click", function () {
+        if (!serviceId) {
+          window.location.href = "/apps/booking/book";
+          return;
+        }
+        var overlay = document.getElementById("bookwell-overlay");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.id = "bookwell-overlay";
+          overlay.className = "bookwell-overlay";
+          overlay.innerHTML =
+            '<div class="bookwell-sheet" role="dialog" aria-modal="true">' +
+            '<button type="button" class="bookwell-close" aria-label="Close">&times;</button>' +
+            '<div class="bookwell-widget" data-open="true"></div></div>';
+          var widget = overlay.querySelector(".bookwell-widget");
+          widget.dataset.serviceId = serviceId;
+          widget.dataset.lang = fab.dataset.lang || "";
+          widget.style.setProperty("--bw-accent", getComputedStyle(fab).getPropertyValue("--bw-accent"));
+          document.body.appendChild(overlay);
+          overlay.addEventListener("click", function (e) {
+            if (e.target === overlay || e.target.classList.contains("bookwell-close")) overlay.style.display = "none";
+          });
+          if (window.Bookwell && window.Bookwell.mount) window.Bookwell.mount(widget);
+        }
+        overlay.style.display = "flex";
+      });
+    })();
+  </script>
+{% endunless %}
+
+{% schema %}
+{
+  "name": "Bookwell floating button",
+  "target": "body",
+  "settings": [
+    { "type": "text", "id": "label", "label": "Button text", "default": "Book now" },
+    {
+      "type": "text",
+      "id": "service_id",
+      "label": "Service ID (optional)",
+      "info": "Opens this service's calendar in a pop-up. Leave empty to link to your page listing all services. Copy the ID from Bookwell → Setup guide."
+    },
+    { "type": "color", "id": "color", "label": "Button colour", "default": "#5b5bd6" },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Position",
+      "options": [
+        { "value": "right", "label": "Bottom right" },
+        { "value": "left", "label": "Bottom left" }
+      ],
+      "default": "right"
+    },
+    { "type": "checkbox", "id": "hide_on_product", "label": "Hide on product pages (they show the booking block)", "default": false },
+    { "type": "checkbox", "id": "hide_on_mobile", "label": "Hide on mobile", "default": false }
+  ]
+}
+{% endschema %}

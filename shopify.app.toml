@@ -19,6 +19,10 @@ api_version = "2026-10"
   topics = [ "app_subscriptions/update" ]
   uri = "/webhooks/billing/update"
 
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "/webhooks/compliance"
+
 # "orders/paid" is deliberately not subscribed yet: that topic's payload
 # carries customer PII, which Shopify gates behind a Protected Customer
 # Data access request in the Partner Dashboard (Settings > Protected
@@ -32,7 +36,10 @@ subpath = "booking"
 prefix = "apps"
 
 [access_scopes]
-scopes = "read_products,write_products,read_orders,read_customers,write_app_proxy"
+# Add ",read_own_subscription_contracts,write_own_subscription_contracts" here
+# (and to SCOPES in .env) once Shopify approves your app's Subscription API
+# access request in the Partner Dashboard; auto-renewing memberships need it.
+scopes = "read_products,write_products,write_orders,write_draft_orders,write_app_proxy,read_themes"
 
 [auth]
 redirect_urls = [ "https://bookwell-app.onrender.com/auth/callback" ]

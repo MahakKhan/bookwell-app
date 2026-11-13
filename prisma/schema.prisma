@@ -28,41 +28,130 @@ model Session {
   refreshTokenExpires DateTime?
 }
 
-// One row per installed store. Everything else is scoped by shopDomain.
+// One row per installed store. Everything else is scoped by shopId.
 model Shop {
   id             String   @id @default(cuid())
   shopDomain     String   @unique
-  planName       String   @default("free")
+  planName       String   @default("free") // Shopify subscription name, e.g. "Growth" or "Growth +2 seats"
+  planStartedAt  DateTime? // anchors the 30-day usage cycle
+  trialUsed      Boolean  @default(false)
+  usageAlertCycle String? // cycle we already emailed a limit warning for
+  onboardingDoneAt DateTime? // setup guide finished or dismissed
   timezone       String   @default("UTC")
   locale         String   @default("en")
+  currency       String   @default("USD")
   smsEnabled     Boolean  @default(false)
   twoWaySyncOn   Boolean  @default(false)
-  widgetAccent   String   @default("#5b5bd6")
 
-  // Bring-your-own-provider notification config. Left blank, sendBookingEmail
-  // / sendBookingSms in notify.server.ts no-op instead of failing the
-  // booking — a merchant can use the app fully before ever setting these.
+  // ---- Widget design ----
+  widgetAccent     String  @default("#5b5bd6")
+  widgetRadius     Int     @default(12)
+  widgetButtonText String?
+
+  // ---- General preferences ----
+  weekStartsOn       Int     @default(1) // 0 = Sunday, 1 = Monday
+  use24h             Boolean @default(false)
+  showStaffSelector  Boolean @default(true)
+  showSlotsLeft      Boolean @default(true)
+  defaultLanguage    String  @default("en")
+  multiLanguage      Boolean @default(true)
+  hideWidgetLogs     Boolean @default(true)
+
+  // ---- Booking limits / rules (null = unlimited / off) ----
+  dailyBookingLimit   Int?
+  maxPerSlot          Int?
+  globalBufferMinutes Int?
+  holdMinutes         Int     @default(30) // how long an unpaid checkout holds the slot
+
+  // ---- Customer self-service ----
+  allowCustomerCancel     Boolean @default(true)
+  allowCustomerReschedule Boolean @default(true)
+  cancelCutoffHours       Int     @default(0)
+
+  // ---- Orders, refunds and cancellation automation ----
+  createOrderWithoutCheckout      Boolean @default(false)
+  autoCancelOrderOnAdminCancel    Boolean @default(false)
+  autoRefundOnAdminCancel         Boolean @default(false)
+  autoCancelOrderOnCustomerCancel Boolean @default(false)
+  autoRefundOnCustomerCancel      Boolean @default(false)
+  autoCancelBookingOnOrderCancel  Boolean @default(false)
+  tagCustomers                    Boolean @default(false)
+
+  // Bring-your-own-provider notification config. Left blank, notify.server.ts
+  // no-ops instead of failing the booking.
   notifyFromEmail   String?
   resendApiKey      String?
   twilioAccountSid  String?
   twilioAuthToken   String?
   twilioFromNumber  String?
+  whatsappEnabled   Boolean @default(false)
+  twilioWhatsappFrom String?
+  emailConfirmSubject String?
+  emailConfirmIntro   String?
+  emailReminderHours  Int     @default(24)
+  notifyMerchantEmail String?
 
-  // Google Calendar OAuth (bring-your-own GOOGLE_CLIENT_ID/SECRET env —
-  // see app/routes/app.calendar.connect.tsx). Null refreshToken means
-  // "not connected"; calendar.server.ts no-ops in that case.
+  // ---- Integrations ----
+  webhookUrl       String?
+  webhookSecret    String?
+  klaviyoApiKey    String?
+  apiKeyHash       String? @unique
+  apiKeyPrefix     String?
+  gaMeasurementId  String?
+  metaPixelId      String?
+  googleBlockBusy  Boolean @default(false) // two-way: busy Google events block slots
+  textOverrides    Json?   // { "en": { "bookBtn": "..." }, "es": { ... } }
+
+  // Google Calendar OAuth (bring-your-own GOOGLE_CLIENT_ID/SECRET env).
   googleRefreshToken String?
   googleAccessToken  String?
   googleTokenExpiry  DateTime?
   googleCalendarId   String?   @default("primary")
+
+  // Microsoft 365 (Outlook Calendar + Teams) via Graph API (MS_CLIENT_ID/SECRET env).
+  msRefreshToken   String?
+  msAccessToken    String?
+  msTokenExpiry    DateTime?
+  msAccount        String?
+  outlookSyncOn    Boolean @default(false)
+  outlookBlockBusy Boolean @default(false)
+
+  // HubSpot private app token (encrypted).
+  hubspotToken     String?
+
+  // Private calendar feed (Apple Calendar / any iCal client). Null = off.
+  icsToken         String? @unique
+
+  // AI phone receptionist (Twilio Voice → Claude).
+  voiceToken       String? @unique
+  voiceEnabled     Boolean @default(false)
+  voiceGreeting    String?
+  voiceInstructions String?
+
+  // Zoom OAuth (bring-your-own ZOOM_CLIENT_ID/SECRET env).
+  zoomRefreshToken String?
+  zoomAccessToken  String?
+  zoomTokenExpiry  DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  services    Service[]
-  staff       StaffMember[]
-  locations   Location[]
-  bookings    Booking[]
-  billingLogs BillingReconciliation[]
+  services      Service[]
+  staff         StaffMember[]
+  locations     Location[]
+  bookings      Booking[]
+  billingLogs   BillingReconciliation[]
+  customers     Customer[]
+  resources     Resource[]
+  blocks        BlockedTime[]
+  blockedEmails BlockedEmail[]
+  questions     BookingQuestion[]
+  waitlist      WaitlistEntry[]
+  notifications NotificationLog[]
+  packages      Package[]
+  waivers       Waiver[]
+  callSessions  CallSession[]
+  customerPackages CustomerPackage[]
+  externalBusy  ExternalBusy[]
 }
 
 model Location {
@@ -85,12 +174,48 @@ model StaffMember {
   shopId    String
   name      String
   email     String?
+  phone     String?
+  bio       String?
   color     String   @default("#5b5bd6")
   active    Boolean  @default(true)
+  position  Int      @default(0)
+
+  // Team portal: a private link the team member opens to see their bookings.
+  portalAccess        Boolean @default(false)
+  portalToken         String  @unique @default(cuid())
+  canEditAvailability Boolean @default(false)
+  hidePrices          Boolean @default(false)
+  hideContact         Boolean @default(false)
+  canCreateBookings   Boolean @default(false)
+  canBookAnyService   Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   availability AvailabilityRule[]
   bookings     Booking[]
+  blocks       BlockedTime[]
+
+  @@index([shopId])
+}
+
+// Bookable equipment / rooms / courts / vehicles. Its quantity is the number
+// of units that can be out at the same time, shared by every service using it.
+model Resource {
+  id            String   @id @default(cuid())
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId        String
+  name          String
+  customerLabel String?
+  description   String?
+  kind          String   @default("custom") // rental | court | table | vehicle | custom
+  quantity      Int      @default(1)
+  bufferMinutes Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  services Service[]
+  bookings Booking[]
+  blocks   BlockedTime[]
 
   @@index([shopId])
 }
@@ -101,58 +226,217 @@ model Service {
   shopId          String
   productId       String? // Shopify Product GID this service is attached to
   name            String
+  description     String?
+  // appointment | group | fullday | multiday | rental | virtual | event
+  type            String   @default("appointment")
   durationMinutes Int      @default(30)
   price           Decimal  @default(0)
   bufferMinutes   Int      @default(0)
-  capacity        Int      @default(1) // >1 enables group bookings
-  requiresDeposit Boolean  @default(false)
+  capacity        Int      @default(1) // seats per slot (group / workshop / event)
+  maxQuantity     Int      @default(1) // seats one customer may take in a booking
+  slotStepMinutes Int?     // null = slot every `durationMinutes`
+  minNoticeMinutes Int     @default(0)
+  maxAdvanceDays  Int      @default(60)
+  dailyLimit      Int?
+  minDays         Int      @default(1) // multiday
+  maxDays         Int      @default(14)
+
+  // staff = a team member performs it; none = no team member (rentals, events)
+  staffMode       String   @default("staff")
+  staffIds        String[] @default([]) // empty = every active team member
+  resource        Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  resourceId      String?
+
+  // none | full | deposit_percent | deposit_fixed
+  paymentMode     String   @default("none")
+  depositValue    Decimal  @default(0)
+  requiresDeposit Boolean  @default(false) // legacy, unused
+
+  meetingUrl      String?  // virtual: Zoom / Meet link sent with the confirmation
+  allowRecurring  Boolean  @default(false)
+  maxRecurrences  Int      @default(8)
+  allowMultiSlot  Boolean  @default(false) // bundle: several slots in one booking
+  maxSlots        Int      @default(5)
+  autoMeet        Boolean  @default(false) // virtual: create a Google Meet per booking
+  autoZoom        Boolean  @default(false) // virtual: create a Zoom meeting per booking
+  autoTeams       Boolean  @default(false) // virtual: create a Microsoft Teams meeting per booking
+  waiver          Waiver?  @relation(fields: [waiverId], references: [id], onDelete: SetNull)
+  waiverId        String?
+  waitlistEnabled Boolean  @default(true)
+  color           String   @default("#5b5bd6")
   active          Boolean  @default(true)
+  archived        Boolean  @default(false)
+  position        Int      @default(0)
   createdAt       DateTime @default(now())
 
-  bookings Booking[]
+  bookings     Booking[]
+  addons       ServiceAddon[]
+  questions    BookingQuestion[]
+  availability AvailabilityRule[]
+  blocks       BlockedTime[]
+  waitlist     WaitlistEntry[]
 
   @@index([shopId])
   @@index([productId])
 }
 
+model ServiceAddon {
+  id              String  @id @default(cuid())
+  service         Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId       String
+  name            String
+  price           Decimal @default(0)
+  durationMinutes Int     @default(0)
+  active          Boolean @default(true)
+  position        Int     @default(0)
+
+  @@index([serviceId])
+}
+
+// Custom questions on the booking form. serviceId null = asked on every service.
+model BookingQuestion {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId String?
+  label     String
+  type      String   @default("text") // text | textarea | select | checkbox
+  options   String[] @default([])
+  required  Boolean  @default(false)
+  position  Int      @default(0)
+
+  @@index([shopId])
+}
+
+// Weekly working hours. Belongs to a team member, or to a service that runs
+// without one (staffMode = none).
 model AvailabilityRule {
-  id          String      @id @default(cuid())
-  staff       StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  staffId     String
+  id          String       @id @default(cuid())
+  staff       StaffMember? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String?
+  service     Service?     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId   String?
   weekday     Int // 0 = Sunday ... 6 = Saturday
   startMinute Int // minutes from midnight, local shop timezone
   endMinute   Int
 
   @@index([staffId])
+  @@index([serviceId])
 }
 
-// A single confirmed timeslot. The unique index is the actual
-// double-booking guard: a second insert for the same staff member
-// and start time fails at the database level, not just in app code.
+// Blocked dates (kind=dates: startDate..endDate inclusive) and break times
+// (kind=break: startMinute..endMinute on `weekday`, or on `startDate` only, or
+// every day when both are null). With no staff/service/resource it applies to
+// the whole shop.
+model BlockedTime {
+  id          String       @id @default(cuid())
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId      String
+  staff       StaffMember? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String?
+  service     Service?     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  resource    Resource?    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resourceId  String?
+  kind        String // dates | break
+  startDate   String?
+  endDate     String?
+  weekday     Int?
+  startMinute Int?
+  endMinute   Int?
+  label       String?
+  source      String       @default("manual") // manual | holiday
+  createdAt   DateTime     @default(now())
+
+  @@index([shopId])
+}
+
+model BlockedEmail {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  email     String
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, email])
+}
+
+model Customer {
+  id                String   @id @default(cuid())
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId            String
+  name              String
+  email             String // stored lower-case
+  phone             String?
+  notes             String?
+  tags              String[] @default([])
+  shopifyCustomerId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  bookings Booking[]
+  packages CustomerPackage[]
+
+  @@unique([shopId, email])
+}
+
+// One booking. Double-booking protection: createBooking() takes a Postgres
+// advisory lock per staff/resource/service pool inside its transaction and
+// re-checks capacity before inserting, so concurrent requests serialise.
 model Booking {
-  id              String    @id @default(cuid())
-  shop            Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  shop            Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
   shopId          String
-  service         Service   @relation(fields: [serviceId], references: [id])
+  service         Service      @relation(fields: [serviceId], references: [id])
   serviceId       String
-  staff           StaffMember @relation(fields: [staffId], references: [id])
-  staffId         String
-  location        Location? @relation(fields: [locationId], references: [id])
+  staff           StaffMember? @relation(fields: [staffId], references: [id])
+  staffId         String?
+  resource        Resource?    @relation(fields: [resourceId], references: [id])
+  resourceId      String?
+  location        Location?    @relation(fields: [locationId], references: [id])
   locationId      String?
+  customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId      String?
 
   startsAt        DateTime
   endsAt          DateTime
-  status          String    @default("confirmed") // confirmed | cancelled | completed | no_show
+  // pending (awaiting payment, holds the slot until holdExpiresAt) | confirmed
+  // | completed | no_show | cancelled | abandoned (checkout never finished)
+  status          String    @default("confirmed")
+  quantity        Int       @default(1)
   customerName    String
   customerEmail   String
   customerPhone   String?
   smsOptIn        Boolean   @default(false)
+  answers         Json?     // [{ label, value }]
+  addons          Json?     // [{ id, name, price, durationMinutes }]
+  notes           String?
+  source          String    @default("widget") // widget | manual | pos | api | portal
+  seriesId        String?   // recurring bookings share one id
+
+  // Money
+  totalPrice      Decimal   @default(0)
+  amountDue       Decimal   @default(0) // charged at checkout (deposit or full)
+  paymentStatus   String    @default("none") // none | pending | paid | partial | refunded
+  holdExpiresAt   DateTime?
+  draftOrderId    String?
+  checkoutUrl     String?
   shopifyOrderId  String?
   depositPaid     Decimal?  @default(0)
 
-  // Capability token handed to the customer at booking time (in the
-  // confirmation screen/email link) so they can reschedule or cancel
-  // without an account — knowing the bookingId alone isn't enough.
+  meetingUrl      String?
+  zoomMeetingId   String?
+  outlookEventId  String?
+  checkedInAt     DateTime?
+  waiverSignatures WaiverSignature[]
+  customerPackage   CustomerPackage? @relation(fields: [customerPackageId], references: [id], onDelete: SetNull)
+  customerPackageId String?
+  cancelledAt     DateTime?
+  cancelledBy     String?   // customer | admin | system
+
+  // Capability token handed to the customer so they can reschedule or cancel
+  // without an account â€” knowing the bookingId alone isn't enough.
   manageToken     String    @unique @default(cuid())
   googleEventId   String?
   reminderSentAt  DateTime?
@@ -160,15 +444,53 @@ model Booking {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([staffId, startsAt])
+  @@index([staffId, startsAt])
   @@index([shopId, startsAt])
   @@index([serviceId])
+  @@index([resourceId, startsAt])
+  @@index([customerId])
+  @@index([shopId, status])
 }
 
-// Written by the weekly reconciliation job described in the plan:
-// verifies every recurring Shopify charge that should have fired
-// actually did, so billing failures get caught instead of silently
-// losing revenue for years.
+model WaitlistEntry {
+  id            String    @id @default(cuid())
+  shop          Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId        String
+  service       Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId     String
+  staffId       String?
+  date          String    // YYYY-MM-DD, shop time
+  startsAt      DateTime? // a specific slot, or null = any time that day
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  status        String    @default("waiting") // waiting | notified | booked | removed
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([shopId, status])
+  @@index([serviceId, date])
+}
+
+// Every email / SMS / WhatsApp / webhook we tried to send, for the history tabs.
+model NotificationLog {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  bookingId String?
+  channel   String // email | sms | whatsapp | webhook | klaviyo
+  kind      String // confirmation | reminder | cancellation | reschedule | waitlist | test | event
+  to        String
+  subject   String?
+  status    String // sent | failed | skipped
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([shopId, createdAt])
+}
+
+// Written by the weekly reconciliation job: verifies every recurring Shopify
+// charge that should have fired actually did.
 model BillingReconciliation {
   id             String   @id @default(cuid())
   shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -180,4 +502,127 @@ model BillingReconciliation {
   details        String? // JSON blob of any mismatched subscription ids
 
   @@index([shopId, ranAt])
+}
+
+// Class packs (N credits) and memberships (unlimited for a period) that
+// customers buy once and redeem on bookings instead of paying each time.
+model Package {
+  id           String   @id @default(cuid())
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId       String
+  name         String
+  description  String?
+  kind         String   @default("pack") // pack | membership
+  credits      Int?     // pack: sessions included; null for memberships
+  validityDays Int      @default(365)
+  price        Decimal  @default(0)
+  serviceIds   String[] @default([]) // empty = every service
+  active       Boolean  @default(true)
+
+  // Auto-renewing membership: sold as a Shopify subscription (selling plan on
+  // a merchant-linked product) and renewed by Bookwell's billing job.
+  recurring            Boolean @default(false)
+  billingInterval      String  @default("MONTH") // WEEK | MONTH | YEAR
+  billingIntervalCount Int     @default(1)
+  productId            String?
+  variantId            String?
+  sellingPlanGroupId   String?
+  sellingPlanId        String?
+  createdAt    DateTime @default(now())
+
+  sold CustomerPackage[]
+
+  @@index([shopId])
+}
+
+model CustomerPackage {
+  id             String    @id @default(cuid())
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId         String
+  package        Package   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageId      String
+  customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId     String?
+  customerEmail  String
+  customerName   String
+  creditsLeft    Int?      // null = unlimited (membership)
+  expiresAt      DateTime?
+  status         String    @default("pending") // pending | active | expired | cancelled
+  source         String    @default("storefront") // storefront | admin
+  draftOrderId   String?
+  checkoutUrl    String?
+  shopifyOrderId String?
+  createdAt      DateTime  @default(now())
+
+  // Auto-renewing memberships
+  manageToken            String    @unique @default(cuid())
+  subscriptionContractId String?   @unique
+  nextBillingDate        DateTime?
+  billingAttemptId       String?
+  billingFailures        Int       @default(0)
+
+  bookings Booking[]
+
+  @@index([shopId, customerEmail])
+  @@index([shopId, status])
+}
+
+// Busy times copied from the merchant's Google Calendar (two-way sync).
+model ExternalBusy {
+  id       String   @id @default(cuid())
+  shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId   String
+  startsAt DateTime
+  endsAt   DateTime
+  source   String   @default("google")
+
+  @@index([shopId, startsAt])
+}
+
+// A waiver customers must read and sign before booking a service.
+model Waiver {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  title     String
+  body      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  services   Service[]
+  signatures WaiverSignature[]
+
+  @@index([shopId])
+}
+
+model WaiverSignature {
+  id         String   @id @default(cuid())
+  waiver     Waiver   @relation(fields: [waiverId], references: [id], onDelete: Cascade)
+  waiverId   String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
+  signerName String
+  signature  String   // PNG data URL of the drawn signature
+  waiverText String   // the exact text that was signed
+  ip         String?
+  userAgent  String?
+  signedAt   DateTime @default(now())
+
+  @@index([bookingId])
+}
+
+// Conversation state for one phone call to the AI receptionist.
+model CallSession {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  callSid   String   @unique
+  caller    String?
+  messages  Json     @default("[]")
+  bookingId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId, createdAt])
 }

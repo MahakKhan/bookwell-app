@@ -1,5 +1,7 @@
 roles = ["backend", "frontend"]
 
 [commands]
-dev = "npm run vite-dev"
+# "npm run preview" serves a production build (fast, no live reload).
+# Switch back to "npm run vite-dev" for hot reloading while editing code.
+dev = "npm run preview"
 build = "npm run build"

@@ -1,55 +1,141 @@
-#bookwell-widget {
+/* Bookwell storefront widget. --bw-accent / --bw-radius come from the
+   merchant's Calendar design settings (or the theme editor accent). */
+.bookwell-widget {
   --bw-accent: #5b5bd6;
-  font-family: inherit;
-  max-width: 420px;
+  --bw-radius: 12px;
+  --bw-accent-2: color-mix(in srgb, var(--bw-accent) 70%, #b79cf0);
+  --bw-soft: color-mix(in srgb, var(--bw-accent) 10%, #fff);
+  --bw-border: #e1e0f5;
+  --bw-fg: #201f3d;
+  --bw-muted: #6c6a92;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--bw-fg);
+  max-width: 460px;
   margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
-#bookwell-widget .bw-book-btn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: var(--bw-accent);
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
+.bookwell-widget *, .bookwell-widget *::before, .bookwell-widget *::after { box-sizing: border-box; }
+.bookwell-widget p { margin: 0; }
+
+.bookwell-widget .bw-book-btn {
+  width: 100%; padding: 13px; border: none; border-radius: var(--bw-radius);
+  background: linear-gradient(135deg, var(--bw-accent), var(--bw-accent-2)); color: #fff;
+  font: 700 15px inherit; font-family: inherit; cursor: pointer; transition: filter .15s, transform .05s;
 }
-#bookwell-widget .bw-panel {
-  border: 1px solid #e1e0f5;
-  border-radius: 10px;
-  padding: 14px;
-  margin-top: 10px;
+.bookwell-widget .bw-book-btn:hover { filter: brightness(1.07); }
+.bookwell-widget .bw-book-btn:active { transform: translateY(1px); }
+.bookwell-widget .bw-book-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.bookwell-widget .bw-panel {
+  background: #fff; border: 1px solid var(--bw-border); border-radius: calc(var(--bw-radius) + 2px);
+  padding: 16px; margin-top: 10px; box-shadow: 0 1px 2px rgba(32,30,60,.06), 0 8px 24px rgba(32,30,60,.08);
 }
-#bookwell-widget .bw-slot {
-  display: inline-block;
-  padding: 8px 12px;
-  margin: 4px;
-  border: 1px solid #e1e0f5;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
+.bookwell-widget .bw-head h3 { margin: 0 0 2px; font-size: 17px; }
+.bookwell-widget .bw-meta { color: var(--bw-muted); font-size: 13px; }
+.bookwell-widget .bw-desc { color: var(--bw-muted); font-size: 13px; margin-top: 6px !important; white-space: pre-line; }
+.bookwell-widget .bw-step { margin-top: 16px; }
+.bookwell-widget .bw-label { font-weight: 700; font-size: 13.5px; margin: 0 0 8px !important; display: block; }
+.bookwell-widget .bw-hint { color: var(--bw-muted); font-size: 12px; }
+
+.bookwell-widget .bw-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.bookwell-widget .bw-chip {
+  padding: 8px 12px; border: 1px solid var(--bw-border); border-radius: var(--bw-radius); background: #fff;
+  cursor: pointer; font: 600 13px inherit; font-family: inherit; color: var(--bw-fg); text-align: left;
 }
-#bookwell-widget .bw-slot.bw-taken {
-  text-decoration: line-through;
-  color: #bbb;
-  cursor: not-allowed;
+.bookwell-widget .bw-chip small { display: block; font-weight: 500; color: var(--bw-muted); font-size: 11.5px; }
+.bookwell-widget .bw-chip:hover { border-color: var(--bw-accent); color: var(--bw-accent); }
+.bookwell-widget .bw-chip.on { background: linear-gradient(135deg, var(--bw-accent), var(--bw-accent-2)); color: #fff; border-color: transparent; }
+.bookwell-widget .bw-chip.on small { color: rgba(255,255,255,.85); }
+.bookwell-widget .bw-chip:disabled { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
+
+.bookwell-widget .bw-qty { display: inline-flex; align-items: center; border: 1px solid var(--bw-border); border-radius: var(--bw-radius); overflow: hidden; }
+.bookwell-widget .bw-qty button { width: 36px; height: 36px; border: none; background: #fff; font-size: 18px; cursor: pointer; color: var(--bw-fg); }
+.bookwell-widget .bw-qty span { min-width: 36px; text-align: center; font-weight: 700; }
+
+/* calendar */
+.bookwell-widget .bw-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.bookwell-widget .bw-cal-head b { font-size: 14px; }
+.bookwell-widget .bw-nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--bw-border); background: #fff; cursor: pointer; font-size: 15px; color: var(--bw-fg); }
+.bookwell-widget .bw-nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+.bookwell-widget .bw-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.bookwell-widget .bw-cal .dow { font-size: 11px; color: var(--bw-muted); font-weight: 600; padding: 4px 0; text-transform: uppercase; }
+.bookwell-widget .bw-day {
+  aspect-ratio: 1; border: none; border-radius: 50%; background: none; font: 600 13px inherit; font-family: inherit;
+  color: #c4c2dc; cursor: default; text-decoration: line-through; display: flex; align-items: center; justify-content: center; position: relative;
 }
-#bookwell-widget .bw-slot.bw-selected {
-  background: var(--bw-accent);
-  color: #fff;
-  border-color: var(--bw-accent);
+.bookwell-widget .bw-day.open { color: var(--bw-fg); text-decoration: none; cursor: pointer; background: var(--bw-soft); }
+.bookwell-widget .bw-day.open:hover { outline: 2px solid var(--bw-accent); }
+.bookwell-widget .bw-day.today::after { content: ""; position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--bw-accent); }
+.bookwell-widget .bw-day.sel, .bookwell-widget .bw-day.range-end { background: var(--bw-accent); color: #fff; }
+.bookwell-widget .bw-day.in-range { background: color-mix(in srgb, var(--bw-accent) 30%, #fff); color: var(--bw-fg); border-radius: 6px; }
+.bookwell-widget .bw-day.blank { visibility: hidden; }
+
+.bookwell-widget .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 7px; }
+.bookwell-widget .bw-time {
+  padding: 9px 8px; border: 1px solid var(--bw-border); border-radius: var(--bw-radius); background: #fff; cursor: pointer;
+  font: 600 13px inherit; font-family: inherit; color: var(--bw-fg); display: flex; justify-content: space-between; gap: 6px; align-items: center;
 }
-#bookwell-widget input {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 8px;
-  border: 1px solid #e1e0f5;
-  border-radius: 6px;
-  box-sizing: border-box;
+.bookwell-widget .bw-time small { font-size: 10.5px; color: var(--bw-muted); font-weight: 600; background: var(--bw-soft); padding: 1px 6px; border-radius: 999px; }
+.bookwell-widget .bw-time:hover { border-color: var(--bw-accent); }
+.bookwell-widget .bw-time.on { background: linear-gradient(135deg, var(--bw-accent), var(--bw-accent-2)); color: #fff; border-color: transparent; }
+.bookwell-widget .bw-time.on small { background: rgba(255,255,255,.25); color: #fff; }
+.bookwell-widget .bw-time.full { color: #b8b6d4; text-decoration: line-through; background: #fafafe; cursor: not-allowed; }
+.bookwell-widget .bw-time.full.wait { cursor: pointer; text-decoration: none; }
+.bookwell-widget .bw-time.full.wait small { background: #fff3dc; color: #a8690f; }
+
+/* form */
+.bookwell-widget .bw-form { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bw-border); display: flex; flex-direction: column; gap: 8px; }
+.bookwell-widget input[type="text"], .bookwell-widget input[type="email"], .bookwell-widget input[type="tel"],
+.bookwell-widget select, .bookwell-widget textarea {
+  width: 100%; padding: 10px 12px; margin: 0; border: 1px solid var(--bw-border); border-radius: calc(var(--bw-radius) - 2px);
+  background: #fbfbff; color: var(--bw-fg); font-family: inherit; font-size: 14px;
 }
-#bookwell-widget .bw-error {
-  color: #b23a2e;
-  font-size: 13px;
-  margin-top: 6px;
+.bookwell-widget textarea { min-height: 70px; resize: vertical; }
+.bookwell-widget input:focus-visible, .bookwell-widget select:focus-visible, .bookwell-widget textarea:focus-visible { outline: 2px solid var(--bw-accent); outline-offset: 1px; }
+.bookwell-widget .bw-q label { font-size: 12.5px; font-weight: 600; display: block; margin-bottom: 4px; }
+.bookwell-widget .bw-check { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: calc(var(--bw-radius) - 2px); background: var(--bw-soft); font-size: 12.8px; cursor: pointer; }
+.bookwell-widget .bw-check input { accent-color: var(--bw-accent); margin: 0; }
+.bookwell-widget .bw-summary { background: var(--bw-soft); border-radius: var(--bw-radius); padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.bookwell-widget .bw-summary .row { display: flex; justify-content: space-between; gap: 10px; }
+.bookwell-widget .bw-summary .total { font-weight: 700; border-top: 1px solid var(--bw-border); padding-top: 5px; margin-top: 3px; }
+.bookwell-widget .bw-error { color: #b23a2e; font-size: 13px; min-height: 1em; }
+.bookwell-widget .bw-loading { color: var(--bw-muted); font-size: 13px; padding: 6px 0; }
+
+.bookwell-widget .bw-success { text-align: center; padding: 14px 6px; }
+.bookwell-widget .bw-ring { width: 52px; height: 52px; border-radius: 50%; background: var(--bw-soft); color: var(--bw-accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+.bookwell-widget .bw-success h4 { margin: 0 0 6px; font-size: 16px; }
+.bookwell-widget .bw-success .bw-sub { color: var(--bw-muted); font-size: 13px; margin: 0 0 12px; }
+.bookwell-widget .bw-success a { color: var(--bw-accent); font-weight: 600; font-size: 13px; }
+
+/* services list page */
+.bookwell-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; font-family: "Inter", system-ui, sans-serif; }
+.bookwell-list a { display: block; padding: 18px; border: 1px solid #e1e0f5; border-radius: 14px; text-decoration: none; color: #201f3d; background: #fff; box-shadow: 0 1px 2px rgba(32,30,60,.06); }
+.bookwell-list a:hover { border-color: var(--bw-accent, #5b5bd6); }
+.bookwell-list h3 { margin: 0 0 4px; font-size: 16px; }
+.bookwell-list p { margin: 0; color: #6c6a92; font-size: 13px; }
+
+/* Floating "Book now" button (app embed) + pop-up */
+.bookwell-fab { position: fixed; bottom: 20px; z-index: 2147483000; font-family: "Inter", system-ui, sans-serif; }
+.bookwell-fab--right { right: 20px; }
+.bookwell-fab--left { left: 20px; }
+.bookwell-fab-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 13px 18px; border: none; border-radius: 999px; cursor: pointer;
+  background: var(--bw-accent, #5b5bd6); color: #fff; font: 700 15px "Inter", system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(20, 20, 50, .25); transition: transform .12s, filter .12s;
 }
+.bookwell-fab-btn:hover { transform: translateY(-1px); filter: brightness(1.07); }
+@media (max-width: 749px) { .bookwell-fab--desktop-only { display: none; } }
+.bookwell-overlay { position: fixed; inset: 0; z-index: 2147483001; background: rgba(10, 12, 24, .5); display: none; align-items: flex-start; justify-content: center; padding: 40px 12px; overflow-y: auto; }
+.bookwell-sheet { position: relative; background: #fff; border-radius: 16px; padding: 20px 18px 8px; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(10, 12, 40, .3); }
+.bookwell-sheet .bookwell-widget { margin: 0; max-width: none; }
+.bookwell-sheet .bw-panel { box-shadow: none; border: none; padding: 0; margin: 0; }
+.bookwell-close { position: absolute; top: 8px; right: 12px; border: none; background: none; font-size: 26px; line-height: 1; cursor: pointer; color: #6c6a92; }
+
+/* Waiver */
+.bookwell-widget .bw-waiver { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--bw-border); border-radius: var(--bw-radius); padding: 12px; }
+.bookwell-widget .bw-waiver-text { max-height: 160px; overflow-y: auto; white-space: pre-wrap; font-size: 12.5px; color: var(--bw-fg); background: #fbfbff; border-radius: 8px; padding: 10px; border: 1px solid var(--bw-border); }
+.bookwell-widget .bw-sig-wrap { position: relative; }
+.bookwell-widget .bw-sig { display: block; width: 100%; height: 140px; border: 1px dashed #b9b6dc; border-radius: 10px; background: #fff; cursor: crosshair; }
+.bookwell-widget .bw-sig-hint { position: absolute; left: 12px; bottom: 8px; font-size: 11px; color: #b9b6dc; pointer-events: none; }
+.bookwell-widget .bw-sig-clear { position: absolute; right: 8px; top: 8px; border: 1px solid var(--bw-border); background: #fff; border-radius: 6px; font-size: 11px; padding: 2px 8px; cursor: pointer; }

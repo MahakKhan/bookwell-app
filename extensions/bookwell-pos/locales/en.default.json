@@ -5,5 +5,7 @@
   "modal_heading": "Today's bookings",
   "loading": "Loading…",
   "empty": "No more bookings today.",
-  "error": "Couldn't load bookings. Try again."
+  "error": "Couldn't load bookings. Try again.",
+  "check_in": "Check in",
+  "checked_in": "Checked in"
 }
