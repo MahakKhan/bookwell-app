@@ -8,7 +8,13 @@ import { cancelSubscription, createSubscription, syncPlanFromShopify, usageFor }
 import { PLANS, SEAT_PRICE, TRIAL_DAYS, nextPlan, subscriptionPrice } from "../plans";
 import { Flash, useBusy } from "../components/ui";
 
-const appUrl = () => (process.env.SHOPIFY_APP_URL || process.env.HOST || "").replace(/\/$/, "");
+/**
+ * Where Shopify sends the merchant after approving a charge. It must be the
+ * app's URL INSIDE the Shopify admin: a bare https://<app host>/app/billing
+ * arrives with no shop/host/session, so authentication fails.
+ */
+const adminReturnUrl = (shopDomain: string) =>
+  `https://admin.shopify.com/store/${shopDomain.replace(/\.myshopify\.com$/, "")}/apps/${process.env.SHOPIFY_API_KEY}/app/billing`;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { session, admin } = await authenticate.admin(request);
@@ -53,7 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
         await syncPlanFromShopify(admin, shop);
         return json({ ok: "You're on the Free plan now." });
       }
-      const url = await createSubscription(admin, shop, plan, seats, `${appUrl()}/app/billing`, BILLING_IS_TEST);
+      const url = await createSubscription(admin, shop, plan, seats, adminReturnUrl(session.shop), BILLING_IS_TEST);
       // Shopify's charge approval page can't open inside the admin iframe.
       return redirect(url, { target: "_top" });
     }
