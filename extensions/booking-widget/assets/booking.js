@@ -544,7 +544,8 @@
       var sessions = st.repeat ? st.repeatCount : cfg.service.allowMultiSlot && st.basket.length ? st.basket.length : 1;
       var total = Math.round(unit * st.quantity * days * 100) / 100;
       var due = 0;
-      if (s.paymentMode === "full") due = total;
+      // Priced services are always paid through Shopify checkout.
+      if (s.paymentMode === "full" || (s.paymentMode === "none" && total > 0)) due = total;
       else if (s.paymentMode === "deposit_percent") due = Math.round(total * s.depositValue) / 100;
       else if (s.paymentMode === "deposit_fixed") due = Math.min(total, s.depositValue);
       return { total: total * sessions, due: due * sessions, days: days, sessions: sessions };

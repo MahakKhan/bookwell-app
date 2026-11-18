@@ -569,7 +569,7 @@ export default function ServiceEdit() {
             <div className="bw-field">
               <label>When does the customer pay?</label>
               <select name="paymentMode" className="bw-select" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
-                <option value="none">Free / pay at the appointment</option>
+                <option value="none">Free (priced services are paid at checkout)</option>
                 <option value="full">Full price up front</option>
                 <option value="deposit_percent">Deposit: percentage</option>
                 <option value="deposit_fixed">Deposit: fixed amount</option>

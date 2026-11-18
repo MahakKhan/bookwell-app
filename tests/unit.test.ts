@@ -100,3 +100,16 @@ describe("access log", () => {
     expect(actorOf({ shop: "a.myshopify.com", onlineAccessInfo: { associated_user: { id: 42 } } })).toBe("user:42");
   });
 });
+
+describe("priced bookings use Shopify checkout", () => {
+  const svc = (price: number, paymentMode = "none") => ({ price, paymentMode, depositValue: 0, type: "appointment" }) as never;
+  it("charges a priced 'pay later' service in full when booked online", async () => {
+    const { priceFor } = await import("../app/models/booking.server");
+    expect(priceFor(svc(45), { quantity: 1, addons: [], days: 1, online: true })).toEqual({ total: 45, due: 45 });
+  });
+  it("leaves free services and manual/POS bookings uncharged", async () => {
+    const { priceFor } = await import("../app/models/booking.server");
+    expect(priceFor(svc(0), { quantity: 1, addons: [], days: 1, online: true }).due).toBe(0);
+    expect(priceFor(svc(45), { quantity: 1, addons: [], days: 1 }).due).toBe(0);
+  });
+});

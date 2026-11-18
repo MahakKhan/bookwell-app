@@ -455,11 +455,17 @@ export function money(n: number) {
 }
 
 /** Price of one booking and how much of it is charged at checkout. */
-export function priceFor(service: ServiceFull, opts: { quantity: number; addons: ServiceAddon[]; days: number }) {
+export function priceFor(
+  service: ServiceFull,
+  opts: { quantity: number; addons: ServiceAddon[]; days: number; online?: boolean },
+) {
   const unit = Number(service.price) + opts.addons.reduce((n, a) => n + Number(a.price), 0);
   const total = money(unit * opts.quantity * (service.type === "multiday" ? opts.days : 1));
   let due = 0;
-  if (service.paymentMode === "full") due = total;
+  // Shopify rule 1.1.2: a priced booking made online must go through Shopify
+  // checkout, so "pay at the appointment" only applies to free services (and
+  // to bookings the merchant enters by hand, which don't pass `online`).
+  if (service.paymentMode === "full" || (opts.online && service.paymentMode === "none" && total > 0)) due = total;
   else if (service.paymentMode === "deposit_percent") due = money((total * Number(service.depositValue)) / 100);
   else if (service.paymentMode === "deposit_fixed") due = Math.min(total, money(Number(service.depositValue)));
   return { total, due };
@@ -551,7 +557,8 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking[
   }
 
   const days = daysBetween(first.startDate, first.endDate) + 1;
-  const { total, due } = priceFor(service, { quantity, addons, days });
+  const online = !manual && (input.source ?? "widget") !== "pos";
+  const { total, due } = priceFor(service, { quantity, addons, days, online });
   const needsPayment = due > 0 && !manual && !input.markPaid && !input.customerPackageId;
   const customer = await upsertCustomer(shop.id, input.customer);
   const candidates = await staffCandidates(shop, service, input.staffId === "any" ? null : input.staffId);

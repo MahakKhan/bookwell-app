@@ -176,7 +176,7 @@ export const TYPE_LABEL: Record<string, string> = {
 };
 
 export const PAYMENT_LABEL: Record<string, string> = {
-  none: "Pay later / free",
+  none: "Free / checkout",
   full: "Full prepayment",
   deposit_percent: "Deposit (%)",
   deposit_fixed: "Deposit (fixed)",
